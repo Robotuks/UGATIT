@@ -1,4 +1,5 @@
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 from tensorflow.contrib import slim
 import cv2
 import os, random
@@ -14,7 +15,25 @@ class ImageData:
     def image_processing(self, filename):
         x = tf.read_file(filename)
         x_decode = tf.image.decode_jpeg(x, channels=self.channels)
-        img = tf.image.resize_images(x_decode, [self.load_size, self.load_size])
+        
+        shape = tf.shape(x_decode)
+        height = shape[0]
+        width = shape[1]
+
+        height_smaller_than_width = tf.less_equal(height, width)
+        
+        new_height_and_width = tf.cond(
+            height_smaller_than_width,
+            lambda: (self.load_size, _compute_longer_edge(height, width, self.load_size)),
+            lambda: (_compute_longer_edge(width, height, self.load_size), self.load_size)
+        )   
+        img_resized = tf.image.resize_images(x_decode, new_height_and_width)
+        seed = random.randint(0, 2 ** 31 - 1)
+        img = tf.image.random_crop(img_resized, [self.load_size, self.load_size, 3], seed = seed)
+
+        # tf.print(height, width, new_height_and_width, tf.shape(img_resized), tf.shape(img))
+        # img = tf.image.resize_images(x_decode, [self.load_size, self.load_size],
+        #                             preserve_aspect_ratio=True)
         img = tf.cast(img, tf.float32) / 127.5 - 1
 
         if self.augment_flag :
@@ -24,6 +43,9 @@ class ImageData:
                 img = augmentation(img, augment_size)
 
         return img
+
+def _compute_longer_edge(height, width, new_shorter_edge):
+    return tf.cast(width*new_shorter_edge/height, tf.int32)
 
 def load_test_data(image_path, size=256):
     img = cv2.imread(image_path, flags=cv2.IMREAD_COLOR)
@@ -52,9 +74,9 @@ def inverse_transform(images):
 
 
 def imsave(images, size, path):
-    images = merge(images, size)
+    images = merge(images, [1, 1])
     images = cv2.cvtColor(images.astype('uint8'), cv2.COLOR_RGB2BGR)
-
+    resized_image = cv2.resize(images,None,fx=size[0],fy=size[1])
     return cv2.imwrite(path, images)
 
 def merge(images, size):

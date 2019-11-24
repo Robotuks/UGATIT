@@ -491,7 +491,7 @@ class UGATIT(object) :
         tf.global_variables_initializer().run()
 
         # saver to save model
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=40)
 
         # summary writer
         self.writer = tf.summary.FileWriter(self.log_dir + '/' + self.model_dir, self.sess.graph)
@@ -631,21 +631,21 @@ class UGATIT(object) :
         index = open(index_path, 'w')
         index.write("<html><body><table><tr>")
         index.write("<th>name</th><th>input</th><th>output</th></tr>")
-
+        resize_scale = [3,2]
         for sample_file  in test_A_files : # A -> B
             print('Processing A image: ' + sample_file)
             sample_image = np.asarray(load_test_data(sample_file, size=self.img_size))
             image_path = os.path.join(self.result_dir,'{0}'.format(os.path.basename(sample_file)))
 
             fake_img = self.sess.run(self.test_fake_B, feed_dict = {self.test_domain_A : sample_image})
-            save_images(fake_img, [1, 1], image_path)
+            save_images(fake_img, resize_scale, image_path)
 
             index.write("<td>%s</td>" % os.path.basename(image_path))
 
             index.write("<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
-                '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
+                '../..' + os.path.sep + sample_file), resize_scale[0]*self.img_size, resize_scale[1]*self.img_size))
             index.write("<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
-                '../..' + os.path.sep + image_path), self.img_size, self.img_size))
+                '../..' + os.path.sep + image_path), resize_scale[0]*self.img_size, resize_scale[1]*self.img_size))
             index.write("</tr>")
 
         for sample_file  in test_B_files : # B -> A
@@ -655,11 +655,11 @@ class UGATIT(object) :
 
             fake_img = self.sess.run(self.test_fake_A, feed_dict = {self.test_domain_B : sample_image})
 
-            save_images(fake_img, [1, 1], image_path)
+            save_images(fake_img, resize_scale, image_path)
             index.write("<td>%s</td>" % os.path.basename(image_path))
             index.write("<td><img src='%s' width='%d' height='%d'></td>" % (sample_file if os.path.isabs(sample_file) else (
-                    '../..' + os.path.sep + sample_file), self.img_size, self.img_size))
+                    '../..' + os.path.sep + sample_file), resize_scale[0]*self.img_size, resize_scale[1]*self.img_size))
             index.write("<td><img src='%s' width='%d' height='%d'></td>" % (image_path if os.path.isabs(image_path) else (
-                    '../..' + os.path.sep + image_path), self.img_size, self.img_size))
+                    '../..' + os.path.sep + image_path), resize_scale[0]*self.img_size, resize_scale[1]*self.img_size))
             index.write("</tr>")
         index.close()

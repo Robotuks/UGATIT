@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from UGATIT import UGATIT
 import argparse
 from utils import *
@@ -83,9 +85,11 @@ def main():
     args = parse_args()
     if args is None:
       exit()
-
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth=True
+    config.allow_soft_placement=True
     # open session
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+    with tf.Session(config=config) as sess:
         gan = UGATIT(sess, args)
 
         # build graph
